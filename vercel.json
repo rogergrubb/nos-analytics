@@ -1,0 +1,17 @@
+{
+  "framework": "nextjs",
+  "regions": ["sfo1"],
+  "headers": [
+    {
+      "source": "/t.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=3600" },
+        { "key": "Content-Type", "value": "application/javascript" },
+        { "key": "Access-Control-Allow-Origin", "value": "*" }
+      ]
+    }
+  ],
+  "rewrites": [
+    { "source": "/t.js", "destination": "/t.js" }
+  ]
+}
