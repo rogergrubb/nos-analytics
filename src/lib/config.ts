@@ -14,14 +14,14 @@ export const ALLOWED_ORIGINS = [
   'http://localhost:5173',
 ];
 
-export const SITES = ['papervault', 'sellfast', 'braincandy', 'fullsendai', 'numberoneson'] as const;
+export const SITES = ['papervault', 'sellfast', 'braincandy', 'fullsend', 'numberoneson'] as const;
 export type SiteId = (typeof SITES)[number];
 
 export const SITE_LABELS: Record<string, string> = {
   papervault: 'PaperVault.one',
   sellfast: 'SellFast.now',
   braincandy: 'BrainCandy.im',
-  fullsendai: 'Full Send AI',
+  fullsend: 'Full Send AI',
   numberoneson: 'numberoneson.us',
 };
 
