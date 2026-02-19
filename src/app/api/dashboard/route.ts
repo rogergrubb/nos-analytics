@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
   const results = await Promise.all(
     SITES.map(async (site) => {
       const stats = await getMultiDayStats(site, clampedDays);
-      return { site, ...stats };
+      return stats;
     })
   );
 
