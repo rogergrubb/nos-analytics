@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { DASHBOARD_PASSWORD, SITES } from '@/lib/config';
+import { DASHBOARD_PASSWORD, SITES, verifySessionToken } from '@/lib/config';
 import { getMultiDayStats } from '@/lib/storage';
 
 function isAuthed(req: NextRequest): boolean {
   const cookie = req.cookies.get('nos-auth')?.value;
-  if (cookie && Buffer.from(cookie, 'base64').toString() === DASHBOARD_PASSWORD) return true;
+  if (cookie && verifySessionToken(cookie)) return true;
+  if (cookie) {
+    try { if (Buffer.from(cookie, 'base64').toString() === DASHBOARD_PASSWORD) return true; } catch {}
+  }
   const auth = req.headers.get('authorization');
   if (auth === `Bearer ${DASHBOARD_PASSWORD}`) return true;
   return false;

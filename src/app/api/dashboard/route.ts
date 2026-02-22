@@ -1,12 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { DASHBOARD_PASSWORD, SITES } from '@/lib/config';
-import { getMultiDayStats, getRealtimeCount } from '@/lib/storage';
+import { DASHBOARD_PASSWORD, SITES, verifySessionToken } from '@/lib/config';
+import { getMultiDayStats } from '@/lib/storage';
 
 function isAuthed(req: NextRequest): boolean {
+  // Check HMAC session token first (new)
   const cookie = req.cookies.get('nos-auth')?.value;
-  if (cookie && Buffer.from(cookie, 'base64').toString() === DASHBOARD_PASSWORD) return true;
+  if (cookie && verifySessionToken(cookie)) return true;
+
+  // Fallback: legacy base64 cookie (for existing sessions — remove after 30 days)
+  if (cookie) {
+    try {
+      if (Buffer.from(cookie, 'base64').toString() === DASHBOARD_PASSWORD) return true;
+    } catch {}
+  }
+
+  // Bearer token
   const auth = req.headers.get('authorization');
   if (auth === `Bearer ${DASHBOARD_PASSWORD}`) return true;
+
   return false;
 }
 
@@ -23,7 +34,6 @@ export async function GET(req: NextRequest) {
     })
   );
 
-  // Aggregate all sites
   const allRealtime = results.reduce((sum, r) => sum + r.realtime, 0);
   const allEvents = results.reduce((sum, r) => sum + r.totals.events, 0);
   const allVisitors = results.reduce((sum, r) => sum + r.totals.visitors, 0);

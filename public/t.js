@@ -1,5 +1,6 @@
-// NOS Analytics Tracker v1.0 — NumberOneSon Software
+// NOS Analytics Tracker v2.0 — NumberOneSon Software
 // Drop-in: <script src="https://analytics.numberoneson.us/t.js" data-site="mysite"></script>
+// Features: pageview, click, error, conversion, scroll, duration, SPA, consent, DNT
 ;(function(){
   'use strict';
   var d=document,w=window,n=navigator,s=screen;
@@ -7,6 +8,20 @@
   if(!el)return;
   var site=el.getAttribute('data-site')||'unknown';
   var endpoint=el.getAttribute('data-endpoint')||el.src.replace(/\/t\.js.*/,'/api/collect');
+
+  // Respect Do Not Track
+  if(n.doNotTrack==='1'||w.doNotTrack==='1'){
+    // Expose noop API so sites don't break
+    w.nosAnalytics={track:function(){},identify:function(){}};
+    return;
+  }
+
+  // Check consent (if consent manager is present)
+  // Sites can set window.__nos_consent = false to disable tracking
+  if(w.__nos_consent===false){
+    w.nosAnalytics={track:function(){},identify:function(){}};
+    return;
+  }
 
   // Fingerprint-lite: hash of screen+tz+lang (no cookies)
   function hash(str){for(var h=0,i=0;i<str.length;i++)h=((h<<5)-h)+str.charCodeAt(i),h|=0;return Math.abs(h).toString(36)}
@@ -23,7 +38,7 @@
     var os=/(Windows|Mac OS|Linux|Android|iOS|iPhone OS)[^\);]*/i.exec(ua);
     var br=/(Chrome|Firefox|Safari|Edge|Opera|SamsungBrowser)[\/\s]([\d.]+)/i.exec(ua);
     return{
-      type:tablet?'tablet':mobile?'mobile':'desktop',
+      deviceType:tablet?'tablet':mobile?'mobile':'desktop',
       os:os?os[0].trim():'Unknown',
       browser:br?br[1]:'Unknown',
       browserVersion:br?br[2]:'',
@@ -53,7 +68,7 @@
     },detect(),utms(),data||{});
     var body=JSON.stringify(payload);
     if(n.sendBeacon){n.sendBeacon(endpoint,body)}
-    else{var x=new XMLHttpRequest();x.open('POST',endpoint,true);x.setRequestHeader('Content-Type','application/json');x.send(body)}
+    else{try{var x=new XMLHttpRequest();x.open('POST',endpoint,true);x.setRequestHeader('Content-Type','application/json');x.send(body)}catch(e){}}
   }
 
   // Page view
@@ -69,7 +84,6 @@
       send('pageview');
     }
   }
-  // Listen for pushState/popstate
   var origPush=history.pushState;
   history.pushState=function(){origPush.apply(this,arguments);checkNav()};
   w.addEventListener('popstate',checkNav);
@@ -83,10 +97,34 @@
     send('click',{label:label,href:href,tag:t.tagName});
   },true);
 
-  // Custom event API
+  // --- ERROR TRACKING (Fix #5) ---
+  w.addEventListener('error',function(e){
+    send('error',{
+      errorMessage:e.message||'Unknown error',
+      errorSource:e.filename||'',
+      errorLine:e.lineno||0,
+      errorCol:e.colno||0
+    });
+  });
+  w.addEventListener('unhandledrejection',function(e){
+    var msg='';
+    if(e.reason){msg=e.reason.message||e.reason.toString()||'Unhandled promise rejection'}
+    send('error',{errorMessage:msg,errorSource:'promise'});
+  });
+
+  // --- PUBLIC API (Fix #1: Conversion tracking) ---
   w.nosAnalytics={
-    track:function(event,data){send('event',Object.assign({event:event},data||{}))},
-    identify:function(userId){fp=hash(userId+site);send('identify',{userId:userId})}
+    // Track custom events — especially 'signup' and 'paid' for funnel
+    // Usage: nosAnalytics.track('signup', { plan: 'pro' })
+    //        nosAnalytics.track('paid', { amount: 29, plan: 'pro' })
+    track:function(event,data){
+      send('event',Object.assign({event:event},data||{}));
+    },
+    // Associate with a user
+    identify:function(userId){
+      fp=hash(userId+site);
+      send('identify',{userId:userId});
+    }
   };
 
   // Send leave event with session data

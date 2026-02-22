@@ -76,6 +76,11 @@ export default function Dashboard() {
           <button className="w-full bg-blue-600 hover:bg-blue-500 text-white rounded-lg py-2.5 font-medium transition-colors">
             Sign In
           </button>
+          <div className="mt-4 text-center">
+            <a href="/privacy" className="text-zinc-600 text-xs hover:text-zinc-400 transition-colors">
+              Privacy Policy
+            </a>
+          </div>
         </form>
       </div>
     );
@@ -148,6 +153,17 @@ export default function Dashboard() {
           </>
         )}
       </main>
+
+      {/* Footer */}
+      <footer className="border-t border-zinc-800 px-6 py-4 mt-8">
+        <div className="max-w-7xl mx-auto flex items-center justify-between text-zinc-600 text-xs">
+          <span>© {new Date().getFullYear()} NumberOneSon Software</span>
+          <div className="flex gap-4">
+            <a href="/privacy" className="hover:text-zinc-400 transition-colors">Privacy Policy</a>
+            <a href="/api/health" target="_blank" className="hover:text-zinc-400 transition-colors">System Status</a>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
