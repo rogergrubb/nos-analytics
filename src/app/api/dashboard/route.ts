@@ -24,23 +24,28 @@ function isAuthed(req: NextRequest): boolean {
 export async function GET(req: NextRequest) {
   if (!isAuthed(req)) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
-  const days = parseInt(req.nextUrl.searchParams.get('days') || '30');
-  const clampedDays = Math.min(Math.max(days, 1), 90);
+  try {
+    const days = parseInt(req.nextUrl.searchParams.get('days') || '30');
+    const clampedDays = Math.min(Math.max(days, 1), 90);
 
-  const results = await Promise.all(
-    SITES.map(async (site) => {
-      const stats = await getMultiDayStats(site, clampedDays);
-      return stats;
-    })
-  );
+    const results = await Promise.all(
+      SITES.map(async (site) => {
+        const stats = await getMultiDayStats(site, clampedDays);
+        return stats;
+      })
+    );
 
-  const allRealtime = results.reduce((sum, r) => sum + r.realtime, 0);
-  const allEvents = results.reduce((sum, r) => sum + r.totals.events, 0);
-  const allVisitors = results.reduce((sum, r) => sum + r.totals.visitors, 0);
+    const allRealtime = results.reduce((sum, r) => sum + r.realtime, 0);
+    const allEvents = results.reduce((sum, r) => sum + r.totals.events, 0);
+    const allVisitors = results.reduce((sum, r) => sum + r.totals.visitors, 0);
 
-  return NextResponse.json({
-    period: `${clampedDays}d`,
-    summary: { realtime: allRealtime, events: allEvents, visitors: allVisitors },
-    sites: results,
-  });
+    return NextResponse.json({
+      period: `${clampedDays}d`,
+      summary: { realtime: allRealtime, events: allEvents, visitors: allVisitors },
+      sites: results,
+    });
+  } catch (e: any) {
+    console.error('dashboard error:', e.message, e.stack);
+    return NextResponse.json({ error: e.message }, { status: 500 });
+  }
 }

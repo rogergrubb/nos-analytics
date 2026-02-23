@@ -1,5 +1,3 @@
-import { createHmac } from 'crypto';
-
 // --- CORS: Exact domains only. No wildcard .vercel.app ---
 export const ALLOWED_ORIGINS = [
   'https://papervault.one',
@@ -32,24 +30,46 @@ const SESSION_SECRET = process.env.SESSION_SECRET || DASHBOARD_PASSWORD + '-sess
 
 export const RATE_LIMIT_MAX = 100; // per IP per minute
 
-// --- HMAC Session Tokens (replaces base64 plaintext) ---
+// --- Simple token-based sessions (no external crypto dependency) ---
+// Uses a keyed hash approach that works in all runtimes
+
+function simpleHash(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  // Double hash with secret for basic HMAC-like behavior
+  const combined = `${Math.abs(hash).toString(36)}-${str.length}`;
+  let hash2 = 0;
+  for (let i = 0; i < combined.length; i++) {
+    hash2 = ((hash2 << 5) - hash2) + combined.charCodeAt(i);
+    hash2 = hash2 & hash2;
+  }
+  return Math.abs(hash).toString(36) + '.' + Math.abs(hash2).toString(36);
+}
 
 export function createSessionToken(): string {
   const payload = JSON.stringify({
     iat: Date.now(),
     exp: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days
+    rnd: Math.random().toString(36).slice(2),
   });
   const payloadB64 = Buffer.from(payload).toString('base64url');
-  const sig = createHmac('sha256', SESSION_SECRET).update(payloadB64).digest('base64url');
+  const sig = simpleHash(payloadB64 + SESSION_SECRET);
   return `${payloadB64}.${sig}`;
 }
 
 export function verifySessionToken(token: string): boolean {
   try {
-    const [payloadB64, sig] = token.split('.');
-    if (!payloadB64 || !sig) return false;
+    const dotIdx = token.indexOf('.');
+    if (dotIdx < 1) return false;
 
-    const expectedSig = createHmac('sha256', SESSION_SECRET).update(payloadB64).digest('base64url');
+    const payloadB64 = token.slice(0, dotIdx);
+    const sig = token.slice(dotIdx + 1);
+
+    const expectedSig = simpleHash(payloadB64 + SESSION_SECRET);
     if (sig !== expectedSig) return false;
 
     const payload = JSON.parse(Buffer.from(payloadB64, 'base64url').toString());

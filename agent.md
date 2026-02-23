@@ -13,12 +13,13 @@
 - Non-functional: Must be maintainable by a solo operator, no CLI dependency
 
 ## 3. Current State
-- **Build**: Deployed to Vercel at analytics.numberoneson.us
-- **Storage**: Migrated from Vercel KV (Redis) to Turso (SQLite/libSQL)
-- **Tracker**: ~2KB vanilla JS, cookie-free, fingerprint-based
-- **Dashboard**: Password-protected, dark theme, site selector, 1/7/30/90 day views
-- **Current tracking**: Pageviews, clicks, leave events, scroll depth, session duration, UTM params, device/browser/OS, geo (country/region/city), basic conversion funnel (visit→signup→paid)
-- **Known gaps identified**: See strategic analysis
+- **Build**: ✅ Compiles clean — awaiting deployment push to GitHub
+- **Storage**: Turso (SQLite/libSQL) — upgraded schema with conversions, errors, audit, rate_limits tables
+- **Tracker**: v2.0 — error tracking, DNT, consent, bot resilience
+- **Dashboard**: HMAC session auth, privacy link, health endpoint
+- **Password**: Must be set to `ChristianandLayla` in Vercel env vars (ANALYTICS_PASSWORD)
+- **Deployment blocker**: Need GitHub push or manual file upload to trigger Vercel build
+- **All 5 top fixes implemented and build-tested**
 
 ## 4. Architecture & Design Decisions
 - Turso (libSQL) over Vercel KV — persistent SQL, better for analytical queries

@@ -140,6 +140,17 @@ async function ensureTables() {
     )`,
   ], 'write');
 
+  // Migrate existing tables — add columns that may be missing
+  const migrations = [
+    `ALTER TABLE analytics_events ADD COLUMN event_name TEXT`,
+    `ALTER TABLE analytics_events ADD COLUMN user_id TEXT`,
+    `ALTER TABLE analytics_events ADD COLUMN is_bot INTEGER DEFAULT 0`,
+    `ALTER TABLE analytics_events ADD COLUMN bot_score REAL DEFAULT 0`,
+  ];
+  for (const sql of migrations) {
+    try { await client.execute(sql); } catch { /* column already exists */ }
+  }
+
   // Create indexes (safe to run multiple times)
   try {
     await client.batch([
